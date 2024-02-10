@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,8 +17,8 @@ import lombok.Data;
 @Entity
 
 @Table(name = "vehicle")
-
 @Data
+@Audited
 public class Vehicle {
 
 	@Id
@@ -36,5 +37,4 @@ public class Vehicle {
 	@UpdateTimestamp
 	private LocalDateTime modifiedtime;
 
-	
 }

@@ -3,7 +3,13 @@ package com.vehicle.management.service;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +29,9 @@ import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.vehicle.management.bean.Vehicle;
 import com.vehicle.management.dto.VehicleDto;
@@ -45,37 +54,50 @@ public class VehicleServiceImpl implements VehicleService {
 
 	@Autowired
 	private RestTemplate restTemplate;
+	
+	Logger logger=LoggerFactory.getLogger(VehicleServiceImpl.class);
 
 	@Override
+
 	public ApiResponse<VehicleDto> saveVehicle(VehicleDto vehicleDto) {
 		try {
 
 			Vehicle vehicle = vehicleMapper.mapVehicleDtoToVehicle(vehicleDto);
 			VehicleDto vehicleDto1 = vehicleMapper.mapVehicleToVehicleDto(vehicleRepository.save(vehicle));
-			return new ApiResponse<VehicleDto>(vehicleDto1, null, null, "vehicle added successflly", HttpStatus.OK,
+			logger.info("vehicle added successfully");
+			return new ApiResponse<VehicleDto>(vehicleDto1, null, null, "vehicle added successfully", HttpStatus.OK,
+
 					false);
-			// Vehicle saveVehicle=vehicleRepository.save(vehicle);
-			// return vehicleMapper.mapVehicleToVehicleDto(saveVehicle);
 
 		} catch (Exception e) {
-			return new ApiResponse<VehicleDto>(null, null, null, "Internal server Error", HttpStatus.NOT_FOUND, true);
+			logger.error("alredy exist");
+			return new ApiResponse<VehicleDto>(null, null, null, "alredy exist", HttpStatus.NOT_FOUND, true);
 
 		}
 
 	}
 
 	@Override
+	//@Cacheable(cacheNames = "Vehicle")
+	
 	public ApiResponse<VehicleDto> getVehicleById(long id) {
+		//logger.info("from cache");
 
 		try {
 			Vehicle vehicle = vehicleRepository.findById(id)
 					.orElseThrow(() -> new ResourceNotFoundException("vehicle", "id", id));
 			VehicleDto vehicleDto = vehicleMapper.mapVehicleToVehicleDto(vehicle);
+			
+			logger.info("vehicle data from database");
+
+			//System.out.println("from data base");
 			return new ApiResponse<VehicleDto>(vehicleDto, null, null, "Vehicle data", HttpStatus.OK, false);
 
 		} catch (ResourceNotFoundException ex) {
+			logger.error("vehicle id not present ");
 			return new ApiResponse<VehicleDto>(null, null, null, ex.getMessage(), HttpStatus.NOT_FOUND, true);
 		} catch (Exception e) {
+			logger.error("vehicle not found");
 			return new ApiResponse<VehicleDto>(null, null, null, "Internal Server Error", HttpStatus.NOT_FOUND, true);
 		}
 
@@ -87,11 +109,15 @@ public class VehicleServiceImpl implements VehicleService {
 		Pageable p = PageRequest.of(pageNumber, pageSize);
 		Page<Vehicle> pagepost = vehicleRepository.findAll(p);
 		List<Vehicle> vehicle = pagepost.getContent();
+		
+		logger.info("all vehicle are present");
 
 		return vehicleMapper.mapVehicleListToVehicleDtoList(vehicle);
 	}
 
 	@Override
+	//@CachePut(cacheNames = "updateVehicle")
+
 	public ApiResponse<VehicleDto> updateVehicle(long id, VehicleDto vehicleDto) {
 
 		try {
@@ -106,32 +132,38 @@ public class VehicleServiceImpl implements VehicleService {
 			existingvehicle.setModifiedby(vehicleDto.getModifiedby());
 
 			VehicleDto vehicleDto2 = vehicleMapper.mapVehicleToVehicleDto(vehicleRepository.save(existingvehicle));
+			logger.info("vehicle update succefully");
 			return new ApiResponse<VehicleDto>(vehicleDto2, null, null, "vehicle update sccessfully", HttpStatus.OK,
 					false);
 		} catch (ResourceNotFoundException ex) {
-			return new ApiResponse<VehicleDto>(null, null, null, ex.getMessage(), HttpStatus.NOT_FOUND, true);
-		} catch (Exception e) {
-			return new ApiResponse<VehicleDto>(null, null, null, "value not present", HttpStatus.NOT_FOUND, true);
-			// TODO: handle exception
-		}
+			return new ApiResponse<VehicleDto>(null, null, null, ex.getMessage(), HttpStatus.NOT_FOUND, false);
+		} catch (Exception e1) {
 
+			logger.error("vehicle not present");
+			return new ApiResponse<VehicleDto>(null, null, null, "vehicle  not present", HttpStatus.NOT_FOUND, true);
+		}
 	}
 
 	@Override
+	//@CacheEvict(cacheNames = "vehicle")
+
 	public ApiResponse<VehicleDto> deleteVehicle(long id) {
 
 		try {
 			vehicleRepository.deleteById(id);
-			return new ApiResponse<VehicleDto>(null, null, null, "vehicle delete successfully", HttpStatus.OK, false);
+			logger.info("vehicle delete succefully");
+			return new ApiResponse<VehicleDto>(null, null, null, "vehicle delete succefully", HttpStatus.OK, false);
 
 		} catch (Exception e) {
-			return new ApiResponse<VehicleDto>(null, null, null, "value not found ", HttpStatus.NOT_FOUND, true);
+			
+			return new ApiResponse<VehicleDto>(null, null, null, "vehicle not found ", HttpStatus.NOT_FOUND, true);
 
 		}
 
 	}
 
 	@Override
+
 	public String getVehiclebyTemplet() {
 
 		try {
@@ -141,43 +173,107 @@ public class VehicleServiceImpl implements VehicleService {
 			ResponseEntity<String> templateData = restTemplate.exchange("https://jsonplaceholder.typicode.com/todos/1",
 					HttpMethod.GET, entity, String.class, headers);
 
+			logger.info("templet are present");
 			return templateData.getBody();
 		} catch (Exception e) {
-			// TODO: handle exception
-		}
 
-		return null;
+			logger.error("not present");
+			e.printStackTrace();
+			
+
+		}
+		return "rest templet";
+
 	}
 
 	@Override
-	public void export(HttpServletResponse response,VehicleDto vehicleDto) throws DocumentException, IOException {
-		Document document=new Document(PageSize.A4);
-		
-		PdfWriter.getInstance(document, response.getOutputStream());
-		
-		document.open();
-		
-		Font fontTitle =FontFactory.getFont(FontFactory.HELVETICA_BOLD);
-		fontTitle.setStyle(18);
-		
-		Paragraph paragraph=new Paragraph("This is title",fontTitle);
-		paragraph.setAlignment(paragraph.ALIGN_CENTER);
-		
-		Font fontparagraph =FontFactory.getFont(FontFactory.HELVETICA);
-		fontparagraph.setSize(12);
-		
-		Paragraph paragraph2 =new Paragraph("This is paragraph",fontTitle);
-		paragraph2.setAlignment(paragraph.ALIGN_LEFT);
-		//Vehicle vehicle = vehicleMapper.mapVehicleDtoToVehicle(vehicleDto);
-		vehicleRepository.findAll();
-		
-		
-		document.add(paragraph);
-		document.add(paragraph2);
-		document.close();
-		
+	public void export(HttpServletResponse response, VehicleDto vehicleDto) throws DocumentException, IOException {
+		// String filepath = "C:\\Pdf";
+
+		try {
+			Document document = new Document(PageSize.A4);
+
+			PdfWriter.getInstance(document, response.getOutputStream());
+
+			document.open();
+
+			Font fontTitle = FontFactory.getFont(FontFactory.HELVETICA_BOLD);
+			fontTitle.setStyle(18);
+
+			Paragraph paragraph = new Paragraph("This is title", fontTitle);
+			paragraph.setAlignment(paragraph.ALIGN_CENTER);
+
+			Font fontTableHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+			Font fontTableCell = FontFactory.getFont(FontFactory.HELVETICA);
+
+			PdfPTable table = new PdfPTable(10);
+			table.addCell(new PdfPCell(new Phrase("ID", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Registration Number", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Owner Name", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Brand", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Registration Expires", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Is Active", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Created By", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Creation Time", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Modified By", fontTableHeader)));
+			table.addCell(new PdfPCell(new Phrase("Modified Time", fontTableHeader)));
+
+			List<Vehicle> vehicles = vehicleRepository.findAll();
+
+			for (Vehicle vehicle : vehicles) {
+				// Add table rows
+				table.addCell(String.valueOf(vehicle.getId()));
+				table.addCell(vehicle.getVehicleRegistrationNumber());
+				table.addCell(vehicle.getOwnername());
+				table.addCell(vehicle.getBrand());
+				table.addCell(String.valueOf(vehicle.getRegistrationExpires()));
+				table.addCell(String.valueOf(vehicle.isActive()));
+				table.addCell(vehicle.getCreatedby());
+				table.addCell(String.valueOf(vehicle.getCreationtime()));
+				table.addCell(vehicle.getModifiedby());
+				table.addCell(String.valueOf(vehicle.getModifiedtime()));
+			}
+
+			document.add(paragraph);
+			document.add(table);
+			// document.add(paragraph2);
+			document.close();
+
+		} catch (Exception e) {
+			logger.error("pdf not present");
+			
+			e.printStackTrace();
+
+		}
+
 	}
-	
-	
+	/*
+	 * @Override //@Cacheable(cacheNames = "Vehicle") public VehicleDto
+	 * getVehiclebyid(long id) { Vehicle
+	 * vehicle=vehicleRepository.findById(id).orElse(null);
+	 * 
+	 * VehicleDto savevehicle=vehicleMapper.mapVehicleToVehicleDto(vehicle);
+	 * System.out.println("from data base");
+	 * 
+	 * return savevehicle; }
+	 */
+
+//	@Override
+//	public List<VehicleDto> getAllvehiclelist(VehicleDto vehicleDto) {
+//
+//		Session s = new Configuration().configure().buildSessionFactory().openSession();
+//
+//		CriteriaBuilder cb = s.getCriteriaBuilder();
+//		CriteriaQuery<VehicleDto> cq = cb.createQuery(VehicleDto.class);
+//		Root<VehicleDto> root = cq.from(VehicleDto.class);
+//		cq.select(root);
+//		
+//		Query<VehicleDto> query=s.createQuery(cq);
+//		List<VehicleDto> result=query.getResultList();
+//		
+//		System.out.println(result);
+//		
+//		return result;
+//	}
 
 }

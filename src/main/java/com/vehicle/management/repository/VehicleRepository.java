@@ -1,3 +1,4 @@
+
 package com.vehicle.management.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
