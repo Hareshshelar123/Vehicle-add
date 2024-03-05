@@ -9,7 +9,7 @@ import com.vehicle.management.dto.VehicleDto;
 @Mapper(componentModel="spring")
 public interface VehicleMapper {
 	
-	//@Mapping(target=,ignore=true)
+	
 	
 	Vehicle mapVehicleDtoToVehicle(VehicleDto vehicledto);
 	

@@ -7,9 +7,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +16,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -54,8 +55,8 @@ public class VehicleServiceImpl implements VehicleService {
 
 	@Autowired
 	private RestTemplate restTemplate;
-	
-	Logger logger=LoggerFactory.getLogger(VehicleServiceImpl.class);
+
+	Logger logger = LoggerFactory.getLogger(VehicleServiceImpl.class);
 
 	@Override
 
@@ -64,7 +65,10 @@ public class VehicleServiceImpl implements VehicleService {
 
 			Vehicle vehicle = vehicleMapper.mapVehicleDtoToVehicle(vehicleDto);
 			VehicleDto vehicleDto1 = vehicleMapper.mapVehicleToVehicleDto(vehicleRepository.save(vehicle));
-			logger.info("vehicle added successfully");
+
+			 logger.trace("starting add vehicle trace");
+			 logger.info("vehicle added successfully");
+
 			return new ApiResponse<VehicleDto>(vehicleDto1, null, null, "vehicle added successfully", HttpStatus.OK,
 
 					false);
@@ -78,19 +82,19 @@ public class VehicleServiceImpl implements VehicleService {
 	}
 
 	@Override
-	//@Cacheable(cacheNames = "Vehicle")
-	
+	// @Cacheable(cacheNames = "Vehicle")
+
 	public ApiResponse<VehicleDto> getVehicleById(long id) {
-		//logger.info("from cache");
+		// logger.info("from cache");
 
 		try {
 			Vehicle vehicle = vehicleRepository.findById(id)
 					.orElseThrow(() -> new ResourceNotFoundException("vehicle", "id", id));
 			VehicleDto vehicleDto = vehicleMapper.mapVehicleToVehicleDto(vehicle);
-			
+
 			logger.info("vehicle data from database");
 
-			//System.out.println("from data base");
+			// System.out.println("from data base");
 			return new ApiResponse<VehicleDto>(vehicleDto, null, null, "Vehicle data", HttpStatus.OK, false);
 
 		} catch (ResourceNotFoundException ex) {
@@ -109,14 +113,14 @@ public class VehicleServiceImpl implements VehicleService {
 		Pageable p = PageRequest.of(pageNumber, pageSize);
 		Page<Vehicle> pagepost = vehicleRepository.findAll(p);
 		List<Vehicle> vehicle = pagepost.getContent();
-		
+
 		logger.info("all vehicle are present");
 
 		return vehicleMapper.mapVehicleListToVehicleDtoList(vehicle);
 	}
 
 	@Override
-	//@CachePut(cacheNames = "updateVehicle")
+	// @CachePut(cacheNames = "updateVehicle")
 
 	public ApiResponse<VehicleDto> updateVehicle(long id, VehicleDto vehicleDto) {
 
@@ -145,7 +149,7 @@ public class VehicleServiceImpl implements VehicleService {
 	}
 
 	@Override
-	//@CacheEvict(cacheNames = "vehicle")
+	// @CacheEvict(cacheNames = "vehicle")
 
 	public ApiResponse<VehicleDto> deleteVehicle(long id) {
 
@@ -155,7 +159,7 @@ public class VehicleServiceImpl implements VehicleService {
 			return new ApiResponse<VehicleDto>(null, null, null, "vehicle delete succefully", HttpStatus.OK, false);
 
 		} catch (Exception e) {
-			
+
 			return new ApiResponse<VehicleDto>(null, null, null, "vehicle not found ", HttpStatus.NOT_FOUND, true);
 
 		}
@@ -179,7 +183,6 @@ public class VehicleServiceImpl implements VehicleService {
 
 			logger.error("not present");
 			e.printStackTrace();
-			
 
 		}
 		return "rest templet";
@@ -241,7 +244,7 @@ public class VehicleServiceImpl implements VehicleService {
 
 		} catch (Exception e) {
 			logger.error("pdf not present");
-			
+
 			e.printStackTrace();
 
 		}
@@ -257,6 +260,12 @@ public class VehicleServiceImpl implements VehicleService {
 	 * 
 	 * return savevehicle; }
 	 */
+//
+//	@Override
+//	public UserDetailsService userDetailsService() {
+//		UserDetails user = User.builder().username("Haresh").password("abc").roles("Admin").build();
+//		return new InMemoryUserDetailsManager(user);
+//	}
 
 //	@Override
 //	public List<VehicleDto> getAllvehiclelist(VehicleDto vehicleDto) {

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 
 import com.lowagie.text.DocumentException;
-import com.vehicle.management.bean.Vehicle;
 import com.vehicle.management.dto.VehicleDto;
 import com.vehicle.management.payload.ApiResponse;
 
@@ -25,9 +24,9 @@ public interface VehicleService {
 	String getVehiclebyTemplet();
 
 	public void export(HttpServletResponse response, VehicleDto vehicleDto) throws DocumentException, IOException;
-	
-	//List<VehicleDto> getAllvehiclelist(VehicleDto vehicleDto);
-	
-	
+
+	// List<VehicleDto> getAllvehiclelist(VehicleDto vehicleDto);
+//	public UserDetailsService userDetailsService();
+//	
 
 }
